@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The One Ring: A Donut Quest of Northern Virginia</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'IM Fell English',Georgia,serif;background:#080402;color:#e8d5a3}
+#particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+#transition-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;opacity:0;pointer-events:none;z-index:600;transition:opacity .4s}
+#transition-overlay.on{opacity:1;pointer-events:all}
+.screen{position:fixed;top:0;left:0;width:100%;height:100%;display:none;z-index:10;overflow:hidden}
+.screen.active{display:flex;flex-direction:column}
+
+/* TITLE */
+#title-screen{background:radial-gradient(ellipse at 50% 35%,#1f0e02,#040200 70%);align-items:center;justify-content:center;text-align:center;gap:.9rem;padding:2rem;overflow-y:auto}
+.title-donut{font-size:5.5rem;display:block;line-height:1;animation:floatD 3s ease-in-out infinite,glowD 2s ease-in-out infinite alternate}
+@keyframes floatD{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-18px) rotate(5deg)}}
+@keyframes glowD{from{filter:drop-shadow(0 0 8px #f5a623) drop-shadow(0 0 18px rgba(245,166,35,.4))}to{filter:drop-shadow(0 0 24px #ffcc44) drop-shadow(0 0 48px rgba(255,200,0,.65))}}
+.t-h1{font-family:'Cinzel Decorative','Cinzel',serif;font-size:clamp(1.8rem,5vw,3.2rem);color:#f0c040;letter-spacing:.06em;line-height:1.2;text-shadow:0 0 24px rgba(245,166,35,.5),0 2px 4px rgba(0,0,0,.8)}
+.t-h2{font-family:'Cinzel',serif;font-size:clamp(.85rem,2.2vw,1.1rem);color:#c8a84b;letter-spacing:.25em;text-transform:uppercase}
+.t-rune{font-family:'Cinzel',serif;font-size:.72rem;color:#7a2020;letter-spacing:.22em;text-shadow:0 0 8px rgba(139,34,34,.5);animation:pulseA 2.5s ease-in-out infinite}
+@keyframes pulseA{0%,100%{opacity:.6}50%{opacity:1}}
+.t-sub{font-style:italic;color:#9a7e52;font-size:.92rem;line-height:1.9;max-width:420px}
+.t-meta{font-size:.72rem;color:#5a4530;font-style:italic;line-height:1.6;max-width:400px}
+
+/* BUTTONS */
+.btn{font-family:'Cinzel',serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:.65rem 1.8rem;border:1.5px solid currentColor;background:transparent;cursor:pointer;transition:all .22s;font-size:.82rem}
+.btn-gold{color:#f0c040;border-color:#c8a84b}.btn-gold:hover{background:#c8a84b;color:#080402}
+.btn-green{color:#4a9b45;border-color:#3a7a35;font-size:.8rem;padding:.5rem 1.2rem}.btn-green:hover{background:#3a7a35;color:#fff}
+.btn-dim{color:#7a6040;border-color:#4a3520;font-size:.72rem;padding:.38rem .9rem}.btn-dim:hover{background:#4a3520;color:#d4b070}
+.btn-danger{color:#8b2222;border-color:#7a2020;font-size:.72rem;padding:.38rem .9rem}.btn-danger:hover{background:#7a2020;color:#e8d5a3}
+
+/* GAME HEADER */
+#game-screen{background:#0a0602}
+#g-header{height:56px;background:linear-gradient(#060300,#0e0700);border-bottom:1px solid #3a2010;display:flex;align-items:center;padding:0 1rem;gap:.75rem;flex-shrink:0;z-index:100}
+#g-logo{font-family:'Cinzel',serif;font-size:.75rem;color:#c8a84b;letter-spacing:.1em;white-space:nowrap}
+#g-progress{flex:1;display:flex;align-items:center;justify-content:center;gap:.2rem}
+.ps{display:flex;flex-direction:column;align-items:center;gap:2px;opacity:.22;transition:opacity .4s;cursor:default}
+.ps.active{opacity:1}.ps.done{opacity:.72}.ps.skipped{opacity:.4}
+.ps-emoji{font-size:1rem;line-height:1}
+.ps.active .ps-emoji{animation:glowD 1.5s ease-in-out infinite alternate}
+.ps-dot{width:5px;height:5px;border-radius:50%;background:#2a1808;transition:background .4s}
+.ps.done .ps-dot{background:#c8a84b}
+.ps.active .ps-dot{background:#f5a623;animation:pulseA 1s infinite}
+.ps-conn{width:8px;height:1px;background:#2a1808;align-self:center;margin-top:-5px}
+
+/* GAME MAIN */
+#g-main{flex:1;display:flex;min-height:0}
+
+/* STORY PANEL */
+#g-story{width:420px;min-width:280px;height:100%;overflow-y:auto;background:#110800;border-right:1px solid #2e1e08;padding:1.25rem;flex-shrink:0}
+#g-story::-webkit-scrollbar{width:5px}
+#g-story::-webkit-scrollbar-track{background:#080400}
+#g-story::-webkit-scrollbar-thumb{background:#2e1e08;border-radius:3px}
+#g-story::-webkit-scrollbar-thumb:hover{background:#c8a84b}
+.ch-place{font-family:'Cinzel',serif;font-size:.63rem;letter-spacing:.2em;color:#4a9b45;text-transform:uppercase;margin-bottom:.2rem}
+.ch-title{font-family:'Cinzel Decorative','Cinzel',serif;font-size:clamp(.8rem,1.8vw,1.05rem);color:#f0c040;margin-bottom:.2rem;text-shadow:0 0 8px rgba(245,166,35,.3)}
+.ch-shop{font-family:'Cinzel',serif;font-size:.7rem;color:#8a6040;margin-bottom:.8rem}
+.s-sep{text-align:center;color:#2e1e08;letter-spacing:.4em;font-size:.7rem;margin:.65rem 0}
+.s-story{font-size:.87rem;line-height:1.9;color:#cca870;margin-bottom:.65rem}
+.s-story em{color:#f0c040;font-style:italic}.s-story strong{color:#f5d060}
+.xc-badge{display:inline-block;background:rgba(200,168,75,.1);border:1px solid #c8a84b;color:#c8a84b;font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.12em;padding:.15rem .45rem;text-transform:uppercase;margin-bottom:.65rem}
+
+/* CLUE BOX */
+.clue-box{background:#080400;border:1px solid #2e1e08;padding:.9rem;margin-top:.5rem}
+.clue-hdr{display:flex;align-items:center;gap:.45rem;margin-bottom:.65rem}
+.clue-hdr-txt{font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.15em;color:#c8a84b;text-transform:uppercase;flex:1}
+.clue-badge{font-family:'Cinzel',serif;font-size:.53rem;letter-spacing:.07em;padding:.13rem .38rem;border:1px solid #6a7a35;color:#8a9b55;text-transform:uppercase}
+.riddle-text{font-style:italic;border-left:2px solid #c8a84b;padding-left:.65rem;line-height:1.95;font-size:.86rem;color:#cca870}
+.cipher-wrap{text-align:center}
+.cipher-lore{font-style:italic;color:#8a6040;font-size:.82rem;line-height:1.75;margin-bottom:.5rem;text-align:left}
+.cipher-code{font-family:'Courier New',Courier,monospace;font-size:1.1rem;color:#f0c040;letter-spacing:3px;background:rgba(0,0,0,.5);border:1px solid rgba(200,168,75,.25);padding:.6rem;margin:.35rem auto;word-break:break-all;text-shadow:0 0 8px rgba(245,166,35,.4);display:block;text-align:center}
+
+/* ANSWER */
+.ans-row{display:flex;gap:.35rem;margin-top:.65rem}
+#ans-input{flex:1;background:rgba(0,0,0,.55);border:1px solid #2e1e08;color:#e8d5a3;font-family:'Cinzel',serif;font-size:.8rem;padding:.42rem .65rem;outline:none;transition:border-color .22s}
+#ans-input:focus{border-color:#c8a84b}
+#ans-input::placeholder{color:#4a3520;font-style:italic}
+#ans-input.correct{border-color:#4a9b45}
+#ans-input.wrong{animation:shake .4s ease;border-color:#8b2222}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#feedback{margin-top:.35rem;font-style:italic;font-size:.78rem;min-height:1.2em}
+.fb-ok{color:#4a9b45}.fb-no{color:#8b2222}.fb-rev{color:#c8a84b}
+
+/* HINTS */
+.hints-section{margin-top:.65rem}
+.hints-lbl{font-family:'Cinzel',serif;font-size:.6rem;color:#4a3520;margin-bottom:.28rem}
+.hint-item{background:rgba(0,0,0,.3);border-left:2px solid #f5a623;padding:.33rem .5rem;font-size:.78rem;color:#c8a060;margin-bottom:.28rem;font-style:italic;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.hint-btns{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.48rem}
+
+/* DIRECTIONS */
+.dir-card{background:rgba(74,155,69,.07);border:1px solid #3a7a35;padding:.7rem;margin-top:.6rem}
+.dir-title{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.14em;color:#4a9b45;text-transform:uppercase;margin-bottom:.28rem}
+.dir-address{font-size:.82rem;color:#e8d5a3;line-height:1.45;margin-bottom:.2rem}
+.dir-hours{font-size:.7rem;color:#8a6040;font-style:italic;margin-bottom:.6rem}
+.dir-comp{font-size:.8rem;color:#c8a84b;font-style:italic;line-height:1.55;margin-bottom:.65rem}
+.maps-link{display:inline-block;font-family:'Cinzel',serif;font-size:.63rem;letter-spacing:.1em;padding:.36rem .72rem;border:1px solid #4a9b45;color:#4a9b45;text-decoration:none;text-transform:uppercase;transition:all .22s}
+.maps-link:hover{background:#4a9b45;color:#fff}
+.next-btns{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.85rem}
+
+/* MAP */
+#g-map-panel{flex:1;height:100%;min-width:0}
+#the-map{width:100%;height:100%}
+.leaflet-container{background:#070400!important}
+.leaflet-popup-content-wrapper{background:#110800!important;border:1px solid #3a2010!important;box-shadow:0 2px 12px rgba(0,0,0,.8)!important;border-radius:0!important;color:#c8a84b}
+.leaflet-popup-tip{background:#110800!important}
+.leaflet-popup-content{margin:.5rem .6rem}
+.leaflet-control-zoom a{background:#110800!important;color:#c8a84b!important;border-color:#2e1e08!important}
+.leaflet-control-zoom a:hover{background:#2a1808!important}
+.map-marker{display:flex;align-items:center;justify-content:center;font-size:1.5rem;line-height:1;transition:all .4s ease;cursor:pointer}
+.map-marker.current{font-size:2rem;animation:glowD 1.5s ease-in-out infinite alternate}
+.map-marker.visited{filter:grayscale(.1) brightness(.85)}
+
+/* VICTORY */
+#victory-screen{background:radial-gradient(ellipse at 50% 40%,#1a0600,#020100 68%);align-items:center;justify-content:center;text-align:center;padding:3rem 2rem;gap:1rem;overflow-y:auto}
+.v-fire{font-size:4.5rem;display:block;animation:vfire .6s ease-in-out infinite alternate}
+@keyframes vfire{from{transform:scale(1) rotate(-2deg)}to{transform:scale(1.1) rotate(2deg)}}
+.v-title{font-family:'Cinzel Decorative','Cinzel',serif;font-size:clamp(1.4rem,4vw,2.6rem);color:#f0c040;text-shadow:0 0 20px #f5a623;animation:pulseA 2s infinite}
+.v-sub{font-family:'Cinzel',serif;font-size:clamp(.78rem,2.5vw,1.1rem);color:#c8a84b;letter-spacing:.2em;text-transform:uppercase}
+.v-body{max-width:540px;font-size:.9rem;line-height:1.9;color:#c09050;font-style:italic}
+.v-decl{font-family:'Cinzel Decorative','Cinzel',serif;font-size:clamp(1rem,3vw,1.8rem);color:#f0c040;text-shadow:0 0 16px #f5a623;animation:pulseA 1.5s infinite}
+.v-stats{font-family:'Cinzel',serif;font-size:.65rem;color:#4a3520;letter-spacing:.1em}
+
+/* RESPONSIVE */
+@media(max-width:700px){
+  #g-main{flex-direction:column}
+  #g-story{width:100%;height:55vh;min-width:0;border-right:none;border-bottom:1px solid #2e1e08}
+  #g-map-panel{height:45vh;flex:none}
+  .cipher-code{font-size:.85rem;letter-spacing:2px}
+  .t-h1{font-size:1.7rem}
+}
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div id="transition-overlay"></div>
+
+<!-- TITLE SCREEN -->
+<div id="title-screen" class="screen active">
+  <span class="title-donut">&#127849;</span>
+  <h1 class="t-h1">The One Ring</h1>
+  <div class="t-h2">A Donut Quest &middot; Northern Virginia</div>
+  <div class="t-rune">One Ring to Fry Them All &middot; One Dozen to Bind Them</div>
+  <p class="t-sub"><em>&ldquo;In the land of Northern Virginia where the sugar lies,<br>
+  One Ring to rule them all&mdash;and it&rsquo;s glazed.&rdquo;</em></p>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:.6rem">
+    <button class="btn btn-gold" id="begin-btn" style="font-size:.95rem;padding:.75rem 2.5rem" onclick="startGame()">&#9876;&#65039; Begin Your Quest</button>
+    <button class="btn btn-dim" onclick="resetGame()">&#8635; Reset Saved Progress</button>
+  </div>
+  <p class="t-meta">Starting at Reston Nature Center &middot; 7 donut shops across NoVA<br>Ciphers, riddles &amp; codes &middot; A car is required &middot; Progress auto-saved</p>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen" class="screen">
+  <div id="g-header">
+    <div id="g-logo">&#127849; The One Ring Quest</div>
+    <div id="g-progress"></div>
+    <button class="btn btn-dim" onclick="resetGame()" style="font-size:.6rem;padding:.28rem .55rem;white-space:nowrap">&#8635; Reset</button>
+  </div>
+  <div id="g-main">
+    <div id="g-story"></div>
+    <div id="g-map-panel"><div id="the-map"></div></div>
+  </div>
+</div>
+
+<!-- VICTORY SCREEN -->
+<div id="victory-screen" class="screen">
+  <span class="v-fire">&#127755;</span>
+  <h2 class="v-title">The Ring is Destroyed!</h2>
+  <div class="v-sub" id="v-sub"></div>
+  <p class="v-body" id="v-body"></p>
+  <div class="v-decl" id="v-decl"></div>
+  <div class="v-stats" id="v-stats"></div>
+  <div style="margin-top:1.5rem;display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center">
+    <button class="btn btn-gold" onclick="resetGame()">Begin Again</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+
+var START = {
+  name: 'Reston Nature Center',
+  address: '11450 Glade Dr, Reston, VA 20191',
+  lat: 38.9343,
+  lng: -77.3397
+};
+
+var STOPS = [
+  {
+    id: 1,
+    name: "Shipley Do-Nuts",
+    address: "256 Maple Ave E, Vienna, VA 22180",
+    lat: 38.9049, lng: -77.2614,
+    hours: "Mon&ndash;Sat: 5AM&ndash;4PM &middot; Sun: 6AM&ndash;4PM",
+    mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=Shipley+Do-Nuts+256+Maple+Ave+E+Vienna+VA",
+    chapter: "Chapter I: The Road Goes Ever On",
+    lotrPlace: "&#127866; The Prancing Pony, Bree",
+    isXC: false,
+    story: "Gandalf has appeared at the the Shire's <strong>Reston Nature Center</strong> bearing grave news&mdash;and a single, glowing glazed donut.<br><br><em>&ldquo;This donut,&rdquo;</em> he says with great solemnity, placing it upon a park bench, <em>&ldquo;is The One Ring&mdash;baked in the fires of Mount Doom. You must travel across the donut shops of Northern Virginia to ensure its demise at Mount Doom. The fate of the NoVA Shire rests in you and your fellowship's powdered hands.&rdquo;</em><br><br>Your first step carries you east from Reston toward Vienna. At the first waypoint, a mysterious message has been found&mdash;scratched into the inn&rsquo;s table in a script unlike any common tongue.",
+    clueType: "Mirror Script",
+    clue: '<div class="cipher-wrap"><p class="cipher-lore">Scratched into the inn\'s wooden table, in letters unlike any common tongue:</p><span class="cipher-code">H&middot;S&middot;R&middot;K&middot;O&middot;V&middot;B</span></div>',
+    answers: ["shipleys","shipley","shipley do nuts","shipley donuts","shipley do-nuts", "shipley doughnuts"],
+    hints: [
+      "In Mordor&rsquo;s realm, all is reversed. The Shadow tongue takes what is first and makes it last, and what is last it makes first.",
+      "The alphabet has been folded precisely in half. Each letter has been swapped with its mirror at the opposite end. Z speaks where A once stood, and A now takes Z&rsquo;s place.",
+      "Reverse Alphabet Cipher&mdash;A=Z, B=Y, C=X, D=W, E=V, F=U, G=T, H=S, I=R, J=Q, K=P, L=O, M=N (and vice versa). Decode H&middot;S&middot;R&middot;K&middot;O&middot;V&middot;B&middot;H and seek the Southern donut chain at 256 Maple Ave E, Vienna, VA."
+    ],
+    winText: "&#10024; The Southern donut chain reveals itself! Shipley Do-Nuts&mdash;a Vienna favorite known for glazed rings and kolaches. The first ring has been found. Onward, Ringbearer!",
+    skipText: "You stride past without stopping, though the scent of fresh kolaches follows you all the way down Maple Avenue&hellip;"
+  },
+  {
+    id: 2,
+    name: "Texas Donuts",
+    address: "167 Glyndon St SE, Vienna, VA 22180",
+    lat: 38.9040, lng: -77.2602,
+    hours: "Mon/Wed&ndash;Sat: 5AM&ndash;3PM &middot; Sun: 6AM&ndash;3PM &middot; &#9888;&#65039; Closed Tuesdays",
+    mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=Texas+Donuts+167+Glyndon+St+SE+Vienna+VA",
+    chapter: "Chapter II: The Plains of Rohan",
+    lotrPlace: "&#128014; Rohan",
+    isXC: false,
+    story: "Still in the rolling realm of <strong>Vienna</strong>, the fellowship pauses. The Ring grows heavier&mdash;or perhaps that is simply the first round of donuts taking effect.<br><br>King Th&eacute;oden materializes from behind a hedge atop a riding Snowmane, pointing dramatically down the street.<br><br><em>&ldquo;Another waypoint calls from this very town, donut-friend! A riddle scroll has fallen from the sky!&rdquo;</em><br><br>He raises his arm, as if to charge towards battle, for emphasis. A nearby squirrel looks unimpressed.",
+    clueType: "Ancient Riddle",
+    clue: '<div class="riddle-text">"A Lone Star blazes on rings of dough,<br>Named for a state where cattle and cowboys go.<br>Bold and wide, bigger than most you have known&mdash;<br>What is this state whose name must be shown?"</div>',
+    answers: ["texas","texas donuts","texas do nuts","texas do-nuts", "texas doughnuts"],
+    hints: [
+      "Think of the fifty kingdoms that make up this great nation. One stands bolder, wider, and more self-assured than nearly all the rest.",
+      "This state&rsquo;s flag bears a single star&mdash;it is nicknamed &lsquo;The Lone Star State.&rsquo; It borders Mexico to the south and is famous for cattle, oil, and bold flavors.",
+      "It is the second-largest US state by area. Starts with T, ends with S. Find this destination at 167 Glyndon St SE, Vienna, VA except do not enter on Tuesdays."
+    ],
+    winText: "&#10024; Texas Donuts! Big flavor, big heart, right there in little Vienna. The kolaches are legendary. The Rohirrim cheer. The ring grows warmer&mdash;Mordor lies to the east.",
+    skipText: "Th&eacute;oden watches you depart. &ldquo;Arise, arise, Riders of the Vienna metro area!&rdquo; Nobody in the car knows what to do with that."
+  },
+  {
+    id: 3,
+    name: "Heidelberg Pastry Shoppe",
+    address: "2150 N Culpeper St, Arlington, VA 22207",
+    lat: 38.8961, lng: -77.1275,
+    hours: "&#9888;&#65039; Open SATURDAY ONLY: 8AM&ndash;1PM",
+    mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=Heidelberg+Pastry+Shoppe+2150+N+Culpeper+St+Arlington+VA",
+    chapter: "Chapter III: The Old World Forge",
+    lotrPlace: "&#127807; Rivendell",
+    isXC: false,
+    story: "The fellowship rides north and east, crossing into the realm of <strong>Arlington</strong>. The streets grow quieter, the architecture older, the trees more deliberate.<br><br>Elrond stands at a bakery door in a crisp European apron, his expression one of eternal, dignified patience.<br><br><em>&ldquo;You seek old-world wisdom,&rdquo;</em> he says. <em>&ldquo;My establishment is named for a great city across the sea&mdash;one that scholars and kings have long admired. A city above a river, crowned by an ancient castle. Can you name it?&rdquo;</em><br><br>He folds his hands and waits. He has very long to wait, if necessary.",
+    clueType: "Ancient Riddle",
+    clue: '<div class="riddle-text">"My name belongs to a city of the Old World\'s grace,<br>Where above a river a great castle guards its place.<br>In the land of Goethe and scholars of ancient fame,<br>A baker in Arlington has taken this city\'s name.<br><br>What German city does this baker\'s shop proclaim?"</div>',
+    answers: ["heidelberg","heidelberg pastry shoppe","heidelberg pastry"],
+    hints: [
+      "Cross the sea in your mind to the Old World&mdash;to the land of castles, poets, and ancient scholars. A great city there shares its name with this bakery.",
+      "Germany holds the answer. A river winds through this city, and above it on a hill stands one of Germany&rsquo;s most beloved medieval castles. The city is also home to Germany&rsquo;s oldest university.",
+      "It is a city on the Neckar River in Baden-W&uuml;rttemberg. Find this destination at 2150 N Culpeper St, Arlington, VA. You may enter on Saturdays only!"
+    ],
+    winText: "&#10024; Heidelberg Pastry Shoppe! Old-world pastries in the heart of Arlington. Elrond approves with elvish grace. The One Ring&rsquo;s power flickers&mdash;but it is not yet unmade.",
+    skipText: "You stride past the bakery, though the scent of freshly baked strudel follows you all the way down Culpeper Street&hellip;"
+  },
+  {
+    id: 4,
+    name: "Good Company Doughnuts & Caf\u00e9",
+    address: "672 N Glebe Rd, Arlington, VA 22203",
+    lat: 38.8783, lng: -77.1117,
+    hours: "Open Daily: 7AM&ndash;5PM",
+    mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=Good+Company+Doughnuts+672+N+Glebe+Rd+Arlington+VA",
+    chapter: "Chapter IV: The Fellowship Gathers",
+    lotrPlace: "&#9876;&#65039; The Council of Elrond",
+    isXC: false,
+    story: "Aragorn leads the fellowship south through Arlington to <strong>Ballston</strong>&mdash;the crossroads of the realm, where Metro trains groan underground and everyone is perpetually in a hurry.<br><br>He slides a coded parchment across a caf&eacute; table without looking up from his libation.<br><br><em>&ldquo;Numbers,&rdquo;</em> he says cryptically. <em>&ldquo;The next destination is hidden within them. Two lines. Decode both.&rdquo;</em><br><br>He finishes the drink without paying and strides out into the rain.",
+    clueType: "Strange Numbers",
+    clue: '<div class="cipher-wrap"><p class="cipher-lore">An elvish messenger left two lines of numbers carved upon the doorstep:</p><span class="cipher-code">7 &middot; 15 &middot; 15 &middot; 4</span><span class="cipher-code">3 &middot; 15 &middot; 13 &middot; 16 &middot; 1 &middot; 14 &middot; 25</span></div>',
+    answers: ["good company","good company doughnuts","good company donuts","good company doughnuts and cafe","good company cafe"],
+    hints: [
+      "Numbers have replaced the letters of your destination. The relationship between them is perfectly orderly&mdash;alphabetical, one might say.",
+      "Consider how letters might be numbered from the very beginning of the alphabet. The first letter has the lowest number. The twenty-sixth has the highest.",
+      "A=1, B=2, C=3&hellip;Z=26. Line 1 (7&middot;15&middot;15&middot;4) = GOOD. Now solve Line 2. Find your fellowship at 672 N Glebe Rd, Ballston, Arlington."
+    ],
+    winText: "&#10024; Good Company Doughnuts! The fellowship gathers over artisan doughnuts and excellent coffee. Aragorn approves. The ring grows heavier&mdash;but sugar helps.",
+    skipText: "Pippin stares mournfully out the car window. &ldquo;We could have had doughnuts, Merry.&rdquo; The fellowship presses south."
+  },
+  {
+    id: 5,
+    name: "Just Fine Donuts",
+    address: "2310 Mt Vernon Ave, Alexandria, VA 22301",
+    lat: 38.8264, lng: -77.0589,
+    hours: "Tue&ndash;Sun: 7:30AM&ndash;8PM &middot; Closed Mondays",
+    mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=Just+Fine+Donuts+2310+Mt+Vernon+Ave+Alexandria+VA",
+    chapter: "Chapter V: Lothl\u00f3rien",
+    lotrPlace: "&#127804; Lothl\u00f3rien",
+    isXC: false,
+    story: "The path leads south into <strong>Alexandria</strong>&mdash;to the calm, tree-lined streets of Del Ray, where time moves at a distinctly more elvish pace.<br><br>The Army of the Dead appears, and a leader stands out amongst them, inexplicably, in the middle of Mt Vernon Avenue.<br><br><em>&ldquo;I encoded the next destination myself!&rdquo;</em> he announces with considerable pride, waving his ghostly sword. <em>&ldquo;The letters have marched forward! March them back!&rdquo;</em><br><br>He vanishes into thin air. The fellowship exchanges a look.",
+    clueType: "Old Inscription",
+    clue: '<div class="cipher-wrap"><p class="cipher-lore">Found on weathered stone near the crossroads, an ancient inscription:</p><span class="cipher-code">MXVW &nbsp; ILQH &nbsp; GRQXWV</span></div>',
+    answers: ["just fine donuts","just fine","just fine donuts alexandria"],
+    hints: [
+      "Julius Caesar devised this very cipher. Each letter has marched forward from its rightful position in the parade of the alphabet.",
+      "The shift is exactly three&mdash;like a soldier who has stepped precisely three paces forward. Send each letter three steps back to restore the truth.",
+      "Shift each letter back by 3: M&rarr;J, X&rarr;U, V&rarr;S, W&rarr;T, I&rarr;F, L&rarr;I, Q&rarr;N, H&rarr;E, G&rarr;D, R&rarr;O, X&rarr;U, W&rarr;T, V&rarr;S. MXVW = JUST. Now solve the rest. Find them at 2310 Mt Vernon Ave, Alexandria."
+    ],
+    winText: "&#10024; Just Fine Donuts! Don&rsquo;t let the modest name deceive you&mdash;the donuts here are extraordinary. Elrond nods with elvish satisfaction. The ring&rsquo;s grip weakens.",
+    skipText: "Legolas sighs musically. &ldquo;My elvish senses tell me those were far more than just fine.&rdquo; The fellowship continues south."
+  },
+  {
+    id: 6,
+    name: "Krispy Kreme",
+    address: "6332 Richmond Hwy, Alexandria, VA 22306",
+    lat: 38.7789, lng: -77.0804,
+    hours: "Mon&ndash;Thu: 6AM&ndash;10PM &middot; Fri&ndash;Sat: 6AM&ndash;11PM &middot; Sun: 6AM&ndash;10PM",
+    mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=Krispy+Kreme+6332+Richmond+Hwy+Alexandria+VA+22306",
+    chapter: "Chapter VI: The Fire of Weathertop",
+    lotrPlace: "&#128293; Weathertop, Amon S\u00fbl",
+    isXC: false,
+    story: "<strong>DANGER!</strong><br><br>The Nazg&ucirc;l close in on Richmond Highway! Nine shadowy figures on black horses circle the intersection in an ominous formation.<br><br>Their leader sweeps forward and offers you a free glazed donut fresh from a supernatural conveyor belt. You are powerless to resist. The ring-shaped donut glows with unearthly golden light.<br><br><em>&ldquo;One of us&hellip;&rdquo;</em> he whispers.<br><br>Aragorn appears from behind with a flaming torch. <em>&ldquo;The Nazg&ucirc;l have scattered the letters of your next destination! UNSCRAMBLE IT before the trail goes cold!&rdquo;</em>",
+    clueType: "Scattered Letters",
+    clue: '<div class="cipher-wrap"><p class="cipher-lore">The Nazg\u00fbl scattered the letters of your destination to the four winds:</p><span class="cipher-code">SPYRIK &nbsp;&nbsp;&nbsp; MEREK</span></div>',
+    answers: ["krispy kreme","krispy kreme donuts","krispy kreme doughnuts"],
+    hints: [
+      "Every letter you need is present&mdash;the Nazg&ucirc;l merely rearranged them. All the pieces of the name exist, just shuffled out of their proper order.",
+      "Work on each word separately. Rearrange only the letters within each scrambled word to form a recognizable word. Both decoded words together form a single famous name.",
+      "SPYRIK = K, R, I, S, P, Y rearranged = KRISPY. Now solve the rest. Find your next destination at 6332 Richmond Hwy, Alexandria."
+    ],
+    winText: "&#10024; Krispy Kreme! The HOT NOW sign blazes like a beacon of Gondor. The original glazed donut&mdash;the One Ring&rsquo;s truest earthly form. The ring&rsquo;s power is nearly broken. One final challenge remains&hellip;",
+    skipText: "You avert your eyes from the glowing 'HOT NOW' sign and keep driving. Samwise weeps quietly in the back seat."
+  },
+  {
+    id: 7,
+    name: "Yoder's Dutch Delights",
+    address: "9145 Manassas Dr, Manassas Park, VA 20111",
+    lat: 38.7671, lng: -77.4427,
+    hours: "Tue&ndash;Fri: 6AM&ndash;4PM &middot; Sat&ndash;Sun: 8AM&ndash;6PM &middot; &#9888;&#65039; Closed Mondays",
+    mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=Yoders+Dutch+Delights+9145+Manassas+Dr+Manassas+Park+VA",
+    chapter: "Chapter VII: The Cracks of Mount Doom",
+    lotrPlace: "&#127755; Mount Doom, Orodruin",
+    isXC: true,
+    story: '<div class="xc-badge">&#11088; Extra Credit Chapter &#11088;</div><br>The Eagles have arrived&mdash;maintaining safe highway speeds over I-66&mdash;bearing a final message from the depths of <strong>Manassas Park</strong>.<br><br><em>&ldquo;The One Ring feels itself closer and closer to its place of birth!&rdquo;</em> cries the Great Eagle from atop a highway overpass. <em>&ldquo;An Amish bakery&mdash;humble as Samwise himself&mdash;is worthy of containing the great donut ring. Their name arrives in dots and dashes!&rdquo;</em><br><br>Samwise grabs your arm with pure determination: <em>&ldquo;Don&rsquo;t you give up now, Mr. Frodo! I can&rsquo;t carry the donut for you, but I will try!&rdquo;</em><br><br>He immediately trips over a tree root. But the spirit is undeniably there.',
+    clueType: "Signal from Afar",
+    clue: '<div class="cipher-wrap"><p class="cipher-lore">A signal carried by the Eagles arrives in dots and dashes:</p><span class="cipher-code">-.-- &nbsp; --- &nbsp; -.. &nbsp; . &nbsp; .-. &nbsp; ...</span></div>',
+    answers: ["yoders","yoder","yoders dutch delights","yoders dutch","yoder dutch delights","yoder dutch"],
+    hints: [
+      "The language of dots and dashes was once used to send urgent messages across vast distances. Each cluster represents a single letter of the alphabet.",
+      "Each group of dots and dashes separated by spaces is one letter. Begin with the first group and decode each one left to right, in order.",
+      "Morse code: A=.- B=-... C=-.-. D=-.. E=. F=..-. G=--. H=.... I=.. J=.--- K=-.- L=.-.. M=-- N=-. O=--- P=.--. Q=--.- R=.-. S=... T=- U=..- V=...- W=.-- X=-..- Y=-.-- Z=--. Find Mount Doom at 9145 Manassas Dr, Manassas Park."
+    ],
+    winText: "&#10024; YODER&rsquo;S DUTCH DELIGHTS! Mount Doom is reached! The One Ring lies before you&mdash;humble, warm, and enormous as a hobbit&rsquo;s heart. You raise it high&hellip; and eat it. THE ONE RING IS UNMADE!",
+    skipText: "The Eagles carry you away from Mount Doom, donut unclaimed. The ring&rsquo;s last flicker of power lingers on."
+  }
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+var SAVE_KEY = 'oneRingDonutV5';
+function defaultState(){ return { currentStop:1, solved:[], skipped:[], hints:{}, revealed:{}, startTime:Date.now() }; }
+function loadState(){ try{ var r=localStorage.getItem(SAVE_KEY); return r?JSON.parse(r):defaultState(); }catch(e){ return defaultState(); } }
+function saveState(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(G)); }catch(e){} }
+var G = loadState();
+
+/* ============================================================
+   MAP
+   ============================================================ */
+var map=null, leafletMarkers={}, startMarker=null, mapReady=false;
+
+function initMap(){
+  if(mapReady) return;
+  mapReady=true;
+  map=L.map('the-map',{center:[38.845,-77.28],zoom:10,zoomControl:true,attributionControl:true});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains:'abcd',maxZoom:19
+  }).addTo(map);
+
+  startMarker=L.marker([START.lat,START.lng],{icon:L.divIcon({
+    html:'<div class="map-marker visited" style="font-size:1.4rem" title="'+START.name+'">&#127794;</div>',
+    className:'',iconSize:[36,36],iconAnchor:[18,18]
+  })}).addTo(map);
+  startMarker.bindPopup(
+    '<div style="font-family:Cinzel,serif;font-size:.72rem;min-width:160px;">'+
+    '<div style="color:#4a9b45;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem;">&#127968; The Shire &mdash; Starting Point</div>'+
+    '<div style="color:#c8a84b;font-weight:700;margin-bottom:.15rem;">'+START.name+'</div>'+
+    '<div style="color:#8a6040;font-size:.65rem;">'+START.address+'</div>'+
+    '</div>'
+  );
+
+  STOPS.forEach(function(stop){
+    var mk=L.marker([stop.lat,stop.lng],{icon:L.divIcon({
+      html:'<div id="mk'+stop.id+'" class="map-marker" style="opacity:0;pointer-events:none" title="'+stop.name+'">&#127849;</div>',
+      className:'',iconSize:[36,36],iconAnchor:[18,18]
+    })}).addTo(map);
+    mk.bindPopup(
+      '<div style="font-family:Cinzel,serif;font-size:.72rem;min-width:160px;">'+
+      '<div style="color:#4a9b45;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem;">'+stop.lotrPlace+'</div>'+
+      '<div style="color:#c8a84b;font-weight:700;margin-bottom:.15rem;">'+stop.name+'</div>'+
+      '<div style="color:#8a6040;font-size:.65rem;">'+stop.address+'</div>'+
+      '</div>'
+    );
+    leafletMarkers[stop.id]=mk;
+  });
+
+  refreshMarkers();
+}
+
+function getCurrentIdx(){
+  for(var i=0;i<STOPS.length;i++){ if(STOPS[i].id===G.currentStop) return i; }
+  return 0;
+}
+
+function isCurrentSolved(){
+  return G.solved.indexOf(G.currentStop)>=0 || G.skipped.indexOf(G.currentStop)>=0;
+}
+
+function refreshMarkers(){
+  if(!map) return;
+  var curIdx=getCurrentIdx();
+  var solved=isCurrentSolved();
+  STOPS.forEach(function(stop,i){
+    var mk=leafletMarkers[stop.id];
+    var el=document.getElementById('mk'+stop.id);
+    if(!mk||!el) return;
+    var isDone=G.solved.indexOf(stop.id)>=0||G.skipped.indexOf(stop.id)>=0;
+    var isCurrent=stop.id===G.currentStop;
+    var isFuture=i>curIdx;
+    if(isFuture||(isCurrent&&!solved)){
+      el.style.opacity='0';
+      el.style.pointerEvents='none';
+    } else if(isDone||(isCurrent&&solved)){
+      el.style.opacity='1';
+      el.style.pointerEvents='auto';
+      el.className='map-marker '+(isCurrent?'current':'visited');
+    }
+  });
+}
+
+function flyToStop(id){
+  var stop=getStop(id);
+  if(!stop||!map) return;
+  map.flyTo([stop.lat,stop.lng],13,{duration:1.5});
+  setTimeout(function(){ if(leafletMarkers[id]) leafletMarkers[id].openPopup(); },1700);
+}
+
+function flyToStart(){
+  if(!map) return;
+  map.flyTo([START.lat,START.lng],13,{duration:1.5});
+  setTimeout(function(){ if(startMarker) startMarker.openPopup(); },1700);
+}
+
+function flyToPrevious(){
+  var idx=getCurrentIdx();
+  if(idx<=0){ flyToStart(); }
+  else{ flyToStop(STOPS[idx-1].id); }
+}
+
+/* ============================================================
+   PROGRESS BAR
+   ============================================================ */
+function renderProgress(){
+  var bar=document.getElementById('g-progress');
+  if(!bar) return;
+  var html='';
+  STOPS.forEach(function(stop,i){
+    var isDone=G.solved.indexOf(stop.id)>=0||G.skipped.indexOf(stop.id)>=0;
+    var isActive=stop.id===G.currentStop;
+    var cls='ps'+(isDone?' done':isActive?' active':'');
+    if(i>0) html+='<div class="ps-conn"></div>';
+    html+='<div class="'+cls+'" title="'+stop.name+'">'+
+          '<div class="ps-emoji">&#127849;</div>'+
+          '<div class="ps-dot"></div>'+
+          '</div>';
+  });
+  bar.innerHTML=html;
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function getStop(id){
+  for(var i=0;i<STOPS.length;i++){ if(STOPS[i].id===id) return STOPS[i]; }
+  return null;
+}
+function normalize(s){ return s.toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim(); }
+function checkAnswer(value,stop){
+  var val=normalize(value);
+  for(var i=0;i<stop.answers.length;i++){ if(normalize(stop.answers[i])===val) return true; }
+  return false;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderPanel(){
+  var stop=getStop(G.currentStop);
+  if(!stop){ showVictory(); return; }
+
+  var solved=isCurrentSolved();
+  var skipped=G.skipped.indexOf(stop.id)>=0;
+  var hu=G.hints[stop.id]||0;
+  var isLast=stop.id===STOPS[STOPS.length-1].id;
+  var isSix=stop.id===6;
+  var revd=G.revealed[stop.id]||false;
+
+  var hintsHtml='';
+  for(var i=0;i<hu;i++){ hintsHtml+='<div class="hint-item">'+stop.hints[i]+'</div>'; }
+
+  var feedbackHtml=revd
+    ?'<span class="fb-rev">&#128065;&#65039; The answer is: <strong>'+stop.answers[0].toUpperCase()+'</strong></span>'
+    :'';
+
+  var clueSection='';
+  if(!solved){
+    clueSection=
+      '<div class="clue-box">'+
+      '<div class="clue-hdr">'+
+        '<span style="font-size:1rem">&#128220;</span>'+
+        '<span class="clue-hdr-txt">A Message Awaits</span>'+
+        // '<span class="clue-badge">'+stop.clueType+'</span>'+
+      '</div>'+
+      '<div>'+stop.clue+'</div>'+
+      '<div class="ans-row">'+
+        '<input type="text" id="ans-input" placeholder="Speak your answer\u2026" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">'+
+        '<button class="btn btn-gold" style="font-size:.72rem;padding:.38rem .75rem;white-space:nowrap" onclick="submitAnswer()">&#9876;&#65039; Submit</button>'+
+      '</div>'+
+      '<div id="feedback">'+feedbackHtml+'</div>'+
+      '<div class="hints-section">'+
+        '<div class="hints-lbl">'+(hu>0?'Hints used: '+hu+'/3':'')+'</div>'+
+        '<div id="hints-list">'+hintsHtml+'</div>'+
+        '<div class="hint-btns">'+
+          (hu<3?'<button class="btn btn-dim" onclick="useHint()">&#128302; Hint ('+hu+'/3 used)</button>':'')+
+          (hu>=3&&!revd?'<button class="btn btn-danger" onclick="revealAnswer()">&#128065;&#65039; Reveal Answer</button>':'')+
+          '<button class="btn btn-dim" onclick="skipStop()">&#9197;&#65039; Skip This Stop</button>'+
+        '</div>'+
+      '</div>'+
+      '</div>';
+  } else {
+    var nextBtns='';
+    if(isSix){
+      nextBtns='<button class="btn btn-green" onclick="nextStop()">&#11088; Attempt Extra Credit &rarr;</button>'+
+               '&nbsp;<button class="btn btn-dim" onclick="showVictory()">&#127755; Claim Victory</button>';
+    } else if(isLast){
+      nextBtns='<button class="btn btn-green" onclick="showVictory()">&#127755; The Ring is Unmade!</button>';
+    } else {
+      nextBtns='<button class="btn btn-green" onclick="nextStop()">'+(skipped?'&#9197;&#65039; Continue Quest &rarr;':'&#9989; I\'ve Been There! Continue &rarr;')+'</button>';
+    }
+    clueSection=
+      '<div class="clue-box">'+
+      '<div class="clue-hdr">'+
+        '<span style="font-size:1rem">'+(skipped?'&#9197;&#65039;':'&#10024;')+'</span>'+
+        '<span class="clue-hdr-txt">'+(skipped?'Stop Skipped':'Clue Solved!')+'</span>'+
+      '</div>'+
+      '<div class="dir-comp">'+(skipped?stop.skipText:stop.winText)+'</div>'+
+      '<div class="dir-card">'+
+        '<div class="dir-title">&#128205; Your Destination</div>'+
+        '<div class="dir-address"><strong>'+stop.name+'</strong><br>'+stop.address+'</div>'+
+        '<div class="dir-hours">'+stop.hours+'</div>'+
+        '<a class="maps-link" href="'+stop.mapsUrl+'" target="_blank" rel="noopener">&#128506;&#65039; Open in Google Maps</a>'+
+      '</div>'+
+      '<div class="next-btns">'+nextBtns+'</div>'+
+      '</div>';
+  }
+
+  var html=
+    '<div class="ch-place">'+stop.lotrPlace+'</div>'+
+    '<div class="ch-title">'+stop.chapter+'</div>'+
+    // '<div class="ch-shop">&#128205; '+stop.name+'</div>'+
+    '<div class="s-story">'+stop.story+'</div>'+
+    '<div class="s-sep">&middot; &middot; &middot; &#10022; &middot; &middot; &middot;</div>'+
+    clueSection;
+
+  var panel=document.getElementById('g-story');
+  panel.innerHTML=html;
+  panel.scrollTop=0;
+
+  var inp=document.getElementById('ans-input');
+  if(inp){
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter') submitAnswer(); });
+    inp.focus();
+  }
+
+  refreshMarkers();
+  renderProgress();
+
+  setTimeout(function(){
+    if(solved){ flyToStop(stop.id); }
+    else{ flyToPrevious(); }
+  },300);
+}
+
+/* ============================================================
+   GAME ACTIONS
+   ============================================================ */
+function submitAnswer(){
+  var inp=document.getElementById('ans-input');
+  var fb=document.getElementById('feedback');
+  if(!inp) return;
+  var value=inp.value.trim();
+  if(!value) return;
+  var stop=getStop(G.currentStop);
+  if(!stop) return;
+
+  if(checkAnswer(value,stop)){
+    inp.className='correct';
+    if(fb) fb.innerHTML='<span class="fb-ok">&#10024; Correct! The path reveals itself&hellip;</span>';
+    if(G.solved.indexOf(stop.id)<0) G.solved.push(stop.id);
+    saveState();
+    setTimeout(function(){ renderPanel(); flyToStop(stop.id); },700);
+  } else {
+    inp.className='wrong';
+    setTimeout(function(){ if(inp) inp.className=''; },500);
+    var hu=G.hints[stop.id]||0;
+    if(fb) fb.innerHTML='<span class="fb-no">&#10060; Not quite. '+(hu===0?'Try again&mdash;or use a hint!':'Keep searching, Ringbearer!')+'</span>';
+  }
+}
+
+function useHint(){
+  var stop=getStop(G.currentStop);
+  if(!stop) return;
+  var used=G.hints[stop.id]||0;
+  if(used>=3) return;
+  G.hints[stop.id]=used+1;
+  saveState();
+  renderPanel();
+  setTimeout(function(){
+    var hl=document.getElementById('hints-list');
+    if(hl) hl.scrollIntoView({behavior:'smooth',block:'nearest'});
+  },100);
+}
+
+function revealAnswer(){
+  var stop=getStop(G.currentStop);
+  if(!stop) return;
+  G.revealed[stop.id]=true;
+  saveState();
+  renderPanel();
+}
+
+function skipStop(){
+  var stop=getStop(G.currentStop);
+  if(!stop) return;
+  if(G.skipped.indexOf(stop.id)<0) G.skipped.push(stop.id);
+  saveState();
+  renderPanel();
+}
+
+function nextStop(){
+  var idx=getCurrentIdx();
+  if(idx>=0&&idx<STOPS.length-1){
+    G.currentStop=STOPS[idx+1].id;
+    saveState();
+    doTransition(function(){ renderPanel(); });
+  } else {
+    showVictory();
+  }
+}
+
+function doTransition(fn){
+  var ov=document.getElementById('transition-overlay');
+  ov.classList.add('on');
+  setTimeout(function(){ fn(); ov.classList.remove('on'); },420);
+}
+
+/* ============================================================
+   SCREEN MANAGEMENT
+   ============================================================ */
+function showScreen(id){
+  var screens=document.querySelectorAll('.screen');
+  for(var i=0;i<screens.length;i++) screens[i].classList.remove('active');
+  var s=document.getElementById(id);
+  if(s) s.classList.add('active');
+}
+
+function startGame(){
+  showScreen('game-screen');
+  setTimeout(function(){
+    initMap();
+    setTimeout(function(){
+      if(map) map.invalidateSize();
+      renderPanel();
+      renderProgress();
+    },150);
+  },50);
+}
+
+function resetGame(){
+  if(!confirm('Reset your entire quest? All progress will be lost.')) return;
+  localStorage.removeItem(SAVE_KEY);
+  location.reload();
+}
+
+/* ============================================================
+   VICTORY
+   ============================================================ */
+function showVictory(){
+  var hasXC=G.solved.indexOf(7)>=0||G.skipped.indexOf(7)>=0;
+  var elapsed=Math.round((Date.now()-G.startTime)/60000);
+
+  document.getElementById('v-sub').textContent=hasXC
+    ?'Victory!'
+    :'\uD83C\uDF69 An adventure to remember! \u2014 The One Ring is Broken!';
+
+  document.getElementById('v-body').textContent=hasXC
+    ?"Mount Doom of Manassas Park has witnessed the destruction of the One Ring. Samwise weeps with joy. Frodo is magnificently sticky with glaze. The Shire of Northern Virginia is safe at last. Even the Eagles stopped for a Yoder's Dutch Delight on the way home."
+    :"The One Ring of Northern Virginia has been tasted, and the One Ring's power has faded into sweetness. From the Reston Nature Center through the donut shops of Vienna, Arlington, and Alexandria, you have proven yourself a true Ringbearer\u2014and a dedicated donut connoisseur.";
+
+  // document.getElementById('v-decl').textContent=hasXC
+  //   ?'The free peoples of Northern Virginia are saved!'
+  //   :'Northern Virginia is free from the One Ring!';
+
+  document.getElementById('v-stats').textContent=
+    'Puzzles solved: '+G.solved.length+' \u00B7 Skipped: '+G.skipped.length+' \u00B7 Quest time: ~'+elapsed+' min';
+
+  showScreen('victory-screen');
+  burstParticles(120);
+}
+
+/* ============================================================
+   PARTICLES
+   ============================================================ */
+var canvas=document.getElementById('particles');
+var ctx=canvas.getContext('2d');
+var particles=[];
+
+function resizeCanvas(){
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+}
+
+function makeParticle(ambient){
+  return {
+    x:ambient?Math.random()*canvas.width:canvas.width/2+(Math.random()-.5)*400,
+    y:ambient?Math.random()*canvas.height:canvas.height/2+(Math.random()-.5)*250,
+    r:Math.random()*1.4+0.3,
+    vx:(Math.random()-.5)*(ambient?0.2:4),
+    vy:ambient?(-Math.random()*.35-.05):((Math.random()-.5)*3-1.5),
+    alpha:ambient?(Math.random()*.5+.05):1,
+    phase:Math.random()*Math.PI*2,
+    color:Math.random()>.5?'#c8a84b':'#f5a623',
+    ambient:ambient
+  };
+}
+
+function initParticles(){
+  resizeCanvas();
+  particles=[];
+  for(var i=0;i<70;i++) particles.push(makeParticle(true));
+  animateParticles();
+}
+
+function animateParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(var i=particles.length-1;i>=0;i--){
+    var p=particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.phase+=0.02;
+    var a;
+    if(p.ambient){
+      if(p.y<-4){ p.y=canvas.height+4; p.x=Math.random()*canvas.width; }
+      a=p.alpha*(0.5+0.5*Math.sin(p.phase));
+    } else {
+      p.alpha-=0.009;
+      if(p.alpha<=0){ particles.splice(i,1); continue; }
+      a=p.alpha;
+    }
+    ctx.save();
+    ctx.globalAlpha=Math.max(0,a);
+    ctx.fillStyle=p.color;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+  requestAnimationFrame(animateParticles);
+}
+
+function burstParticles(n){
+  for(var i=0;i<n;i++) particles.push(makeParticle(false));
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+window.addEventListener('resize',function(){
+  resizeCanvas();
+  if(map) map.invalidateSize();
+});
+
+if(G.solved.length>0||G.currentStop>1){
+  var bb=document.getElementById('begin-btn');
+  if(bb) bb.textContent='\u2694\uFE0F Continue Your Quest';
+}
+
+initParticles();
+</script>
+</body>
+</html>
