@@ -213,7 +213,7 @@ var STOPS = [
       "The alphabet has been folded precisely in half. Each letter has been swapped with its mirror at the opposite end. Z speaks where A once stood, and A now takes Z&rsquo;s place.",
       "Reverse Alphabet Cipher&mdash;A=Z, B=Y, C=X, D=W, E=V, F=U, G=T, H=S, I=R, J=Q, K=P, L=O, M=N (and vice versa). Decode H&middot;S&middot;R&middot;K&middot;O&middot;V&middot;B&middot;H and seek the Southern donut chain at 256 Maple Ave E, Vienna, VA."
     ],
-    winText: "&#10024; The Southern donut chain reveals itself! Shipley Do-Nuts&mdash;a Vienna favorite known for glazed rings and kolaches. The first ring has been found. Onward, Ringbearer!",
+    winText: "&#10024; The Southern donut chain reveals itself! Shipley Do-Nuts&mdash;a Vienna favorite known for glazed rings and kolaches. The first location has been found. Onward, Ringbearer!",
     skipText: "You stride past without stopping, though the scent of fresh kolaches follows you all the way down Maple Avenue&hellip;"
   },
   {
@@ -235,7 +235,7 @@ var STOPS = [
       "This state&rsquo;s flag bears a single star&mdash;it is nicknamed &lsquo;The Lone Star State.&rsquo; It borders Mexico to the south and is famous for cattle, oil, and bold flavors.",
       "It is the second-largest US state by area. Starts with T, ends with S. Find this destination at 167 Glyndon St SE, Vienna, VA except do not enter on Tuesdays."
     ],
-    winText: "&#10024; Texas Donuts! Big flavor, big heart, right there in little Vienna. The kolaches are legendary. The Rohirrim cheer. The ring grows warmer&mdash;Mordor lies to the east.",
+    winText: "&#10024; Texas Donuts! Big flavor, big heart, right there in little Vienna. The kolaches are legendary. The Rohirrim cheer. The ring grows warmer&mdash;Mordor supposedly lies to the east.",
     skipText: "Th&eacute;oden watches you depart. &ldquo;Arise, arise, Riders of the Vienna metro area!&rdquo; Nobody in the fellowship knows what to do with that."
   },
   {
@@ -336,7 +336,7 @@ var STOPS = [
     chapter: "Chapter VII: The Cracks of Mount Doom",
     lotrPlace: "&#127755; Mount Doom, Orodruin",
     isXC: true,
-    story: '<div class="xc-badge">&#11088; Final Chapter &#11088;</div><br>The Eagles have arrived&mdash;maintaining safe highway speeds over I-66&mdash;bearing a final message from the depths of <strong>Manassas Park</strong>.<br><br><em>&ldquo;The One Ring feels itself closer and closer to its place of birth!&rdquo;</em> cries the Great Eagle from atop a highway overpass. <em>&ldquo;An Amish bakery&mdash;humble as Samwise himself&mdash;is worthy of containing the great donut ring. Their name arrives in dots and dashes!&rdquo;</em><br><br>Samwise grabs your arm with pure determination: <em>&ldquo;Don&rsquo;t you give up now, Mr. Frodo! I can&rsquo;t carry the donut for you, but I will try!&rdquo;</em><br><br>He immediately trips over a tree root. But the spirit is undeniably there.',
+    story: '<div class="xc-badge">&#11088; Final Chapter &#11088;</div><br>The Eagles have arrived&mdash;maintaining safe highway speeds over I-66&mdash;bearing a final message from the depths of <strong>Manassas Park</strong>.<br><br><em>&ldquo;The One Ring feels itself closer and closer to its place of birth west of here!&rdquo;</em> cries the Great Eagle from atop a highway overpass. <em>&ldquo;An Amish bakery&mdash;humble as Samwise himself&mdash;is worthy of containing the great donut ring. Their name arrives in dots and dashes!&rdquo;</em><br><br>Samwise grabs your arm with pure determination: <em>&ldquo;Don&rsquo;t you give up now, Mr. Frodo! I can&rsquo;t carry the donut for you, but I will try!&rdquo;</em><br><br>He immediately trips over a tree root. But the spirit is undeniably there.',
     clueType: "Signal from Afar",
     clue: '<div class="cipher-wrap"><p class="cipher-lore">A signal carried by the Eagles arrives in dots and dashes:</p><span class="cipher-code">-.-- &nbsp; --- &nbsp; -.. &nbsp; . &nbsp; .-. &nbsp; ...</span></div>',
     answers: ["yoders","yoder","yoders dutch delights","yoders dutch","yoder dutch delights","yoder dutch"],
@@ -537,7 +537,7 @@ function renderPanel(){
     var nextBtns='';
     if(isSix){
       nextBtns='<button class="btn btn-green" onclick="nextStop()">&#11088; Attempt Final Chapter &rarr;</button>'+
-               '&nbsp;<button class="btn btn-dim" onclick="showVictory()">&#127755; Claim Victory</button>';
+               '&nbsp;<button class="btn btn-dim" onclick="showVictory()">&#127755; End Journey Here</button>';
     } else if(isLast){
       nextBtns='<button class="btn btn-green" onclick="showVictory()">&#127755; The Ring is Unmade!</button>';
     } else {
